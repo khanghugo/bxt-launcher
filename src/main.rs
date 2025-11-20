@@ -11,12 +11,13 @@ use crate::{
 };
 
 mod config;
+mod error;
 mod utils;
 
 fn main() -> eframe::Result {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([384.0, 200.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([408.0, 174.0]),
         ..Default::default()
     };
 
@@ -42,55 +43,99 @@ fn main() -> eframe::Result {
 
 struct BxtLauncher {
     config: Arc<Mutex<Config>>,
+    status: String,
 }
 
 impl BxtLauncher {
     fn new(config: Arc<Mutex<Config>>) -> Self {
-        Self { config }
+        Self {
+            config,
+            status: String::from("Idle"),
+        }
     }
 }
+
+const BXT_FILE_NAME: &str = if cfg!(windows) {
+    "BunnymodXT.dll"
+} else {
+    "libBunnymodXT.so"
+};
+
+const BXT_RS_FILE_NAME: &str = if cfg!(windows) {
+    "bxt_rs.dll"
+} else {
+    "libbxt_rs.so"
+};
+
+const HL_EXE_FILE_NAME: &str = if cfg!(windows) { "hl.exe" } else { "hl_linux" };
 
 impl eframe::App for BxtLauncher {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading(
-                "Make sure BunnymodXT.dll and bxt_rs.dll are in the same folder as Injector.exe",
-            );
-
             ui.separator();
 
             let mut config = self.config.lock();
 
             egui::Grid::new("ui grid")
-                .num_columns(3)
+                .num_columns(4)
                 .max_col_width(260.)
-                // .min_col_width(100.)
+                .min_col_width(8.)
                 .show(ui, |ui| {
-                    ui.label("hl.exe");
-                    ui.text_edit_singleline(&mut config.hlexe);
+                    ui.label(HL_EXE_FILE_NAME);
+                    ui.add(
+                        egui::TextEdit::singleline(&mut config.hlexe)
+                            .hint_text(format!("Drag-and-drop {}", HL_EXE_FILE_NAME)),
+                    );
                     if ui.button("+").clicked() {
                         if let Some(path) =
                             rfd::FileDialog::new().set_file_name("hl.exe").pick_file()
                         {
-                            if path.extension().is_some_and(|ext| ext == "exe") {
+                            if path
+                                .file_name()
+                                .is_some_and(|filename| filename == HL_EXE_FILE_NAME)
+                            {
                                 config.hlexe = path.display().to_string();
                             }
                         }
                     }
                     ui.end_row();
 
-                    ui.label("Injector.exe");
-                    ui.text_edit_singleline(&mut config.injector);
+                    ui.label("BunnymodXT");
+                    ui.add(
+                        egui::TextEdit::singleline(&mut config.bxt)
+                            .hint_text(format!("Drag-and-drop {}", BXT_FILE_NAME)),
+                    );
                     if ui.button("+").clicked() {
                         if let Some(path) = rfd::FileDialog::new()
-                            .set_file_name("Injector.exe")
+                            .set_file_name(BXT_FILE_NAME)
                             .pick_file()
                         {
-                            if path.extension().is_some_and(|ext| ext == "exe") {
-                                config.injector = path.display().to_string();
+                            if path.extension().is_some_and(|ext| ext == "dll") {
+                                config.bxt = path.display().to_string();
                             }
                         }
                     }
+                    ui.checkbox(&mut config.enable_bxt, "")
+                        .on_hover_text("Toggle BunnymodXT");
+                    ui.end_row();
+
+                    ui.label("bxt-rs");
+                    ui.add(
+                        egui::TextEdit::singleline(&mut config.bxt_rs)
+                            .hint_text(format!("Drag-and-drop {}", BXT_RS_FILE_NAME)),
+                    );
+                    if ui.button("+").clicked() {
+                        if let Some(path) = rfd::FileDialog::new()
+                            .set_file_name(BXT_RS_FILE_NAME)
+                            .pick_file()
+                        {
+                            if path.extension().is_some_and(|ext| ext == "dll") {
+                                config.bxt_rs = path.display().to_string();
+                            }
+                        }
+                    }
+                    ui.checkbox(&mut config.enable_bxt_rs, "")
+                        .on_hover_text("Toggle bxt-rs");
                     ui.end_row();
 
                     ui.label("Gamemod");
@@ -99,14 +144,26 @@ impl eframe::App for BxtLauncher {
                     ui.end_row();
 
                     ui.label("Extra options");
-                    ui.text_edit_singleline(&mut config.extras);
+                    ui.add(
+                        egui::TextEdit::singleline(&mut config.extras)
+                            .hint_text("More launch options"),
+                    );
                     ui.end_row();
 
+                    // extra space
                     ui.end_row();
+
+                    // run but on
                     if ui.button("Run").clicked() {
-                        println!("this runs");
-                        run_bxt(&config);
+                        match run_bxt(&config) {
+                            Ok(_) => self.status = "OK".into(),
+                            Err(err) => self.status = err.to_string(),
+                        };
                     }
+
+                    // status text
+                    let mut text = self.status.as_str();
+                    ui.text_edit_singleline(&mut text);
                 });
 
             let ctx = ui.ctx();
@@ -119,16 +176,23 @@ impl eframe::App for BxtLauncher {
                     if let Some(item) = item.path {
                         if item
                             .file_name()
-                            .is_some_and(|filename| filename == "hl.exe")
+                            .is_some_and(|filename| filename == HL_EXE_FILE_NAME)
                         {
                             config.hlexe = item.to_str().unwrap().to_string();
                         }
 
                         if item
                             .file_name()
-                            .is_some_and(|filename| filename == "Injector.exe")
+                            .is_some_and(|filename| filename == BXT_FILE_NAME)
                         {
-                            config.injector = item.to_str().unwrap().to_string();
+                            config.bxt = item.to_str().unwrap().to_string();
+                        }
+
+                        if item
+                            .file_name()
+                            .is_some_and(|filename| filename == BXT_RS_FILE_NAME)
+                        {
+                            config.bxt_rs = item.to_str().unwrap().to_string();
                         }
                     }
                 }
