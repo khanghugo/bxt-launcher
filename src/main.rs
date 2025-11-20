@@ -104,6 +104,7 @@ impl eframe::App for BxtLauncher {
 
                     ui.end_row();
                     if ui.button("Run").clicked() {
+                        println!("this runs");
                         run_bxt(&config);
                     }
                 });
