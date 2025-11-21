@@ -82,7 +82,9 @@ impl eframe::App for BxtLauncher {
             let now = std::time::Instant::now();
             if now.duration_since(self.save_timer).as_secs_f32() >= SAVE_PERIOD {
                 match self.config.lock().write_to_default() {
-                    Ok(_) => (),
+                    Ok(_) => {
+                        self.save_timer = now;
+                    }
                     Err(err) => self.status = err.to_string(),
                 }
             }
