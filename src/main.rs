@@ -89,14 +89,16 @@ impl eframe::App for BxtLauncher {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            let mut should_save_file = false;
+
             let mut configs = self.config.lock();
             let profle_count = configs.configs.len();
-            let current_profile = configs.current_profile;
+            let current_profile_index = configs.current_profile;
 
-            let config = &mut configs.configs[current_profile];
+            let current_profile = &mut configs.configs[current_profile_index];
 
             #[cfg(not(windows))]
-            let use_windows_files = config.use_wine && false;
+            let use_windows_files = current_profile.use_wine && false;
 
             #[cfg(windows)]
             let use_windows_files = true;
@@ -125,10 +127,16 @@ impl eframe::App for BxtLauncher {
                 .min_col_width(8.)
                 .show(ui, |ui| {
                     ui.label(hl_exe_file_name);
-                    ui.add(
-                        egui::TextEdit::singleline(&mut config.hlexe)
-                            .hint_text(format!("Drag-and-drop {}", hl_exe_file_name)),
-                    );
+                    if ui
+                        .add(
+                            egui::TextEdit::singleline(&mut current_profile.hlexe)
+                                .hint_text(format!("Drag-and-drop {}", hl_exe_file_name)),
+                        )
+                        .lost_focus()
+                    {
+                        should_save_file = true;
+                    }
+
                     if ui.button("+").clicked() {
                         if let Some(path) =
                             rfd::FileDialog::new().set_file_name("hl.exe").pick_file()
@@ -137,7 +145,8 @@ impl eframe::App for BxtLauncher {
                                 .file_name()
                                 .is_some_and(|filename| filename == hl_exe_file_name)
                             {
-                                config.hlexe = path.display().to_string();
+                                current_profile.hlexe = path.display().to_string();
+                                should_save_file = true;
                             }
                         }
                     }
@@ -151,29 +160,48 @@ impl eframe::App for BxtLauncher {
                     ui.end_row();
 
                     ui.label("BunnymodXT");
-                    ui.add(
-                        egui::TextEdit::singleline(&mut config.bxt)
-                            .hint_text(format!("Drag-and-drop {}", bxt_file_name)),
-                    );
+                    if ui
+                        .add(
+                            egui::TextEdit::singleline(&mut current_profile.bxt)
+                                .hint_text(format!("Drag-and-drop {}", bxt_file_name)),
+                        )
+                        .lost_focus()
+                    {
+                        should_save_file = true;
+                    }
+
                     if ui.button("+").clicked() {
                         if let Some(path) = rfd::FileDialog::new()
                             .set_file_name(bxt_file_name)
                             .pick_file()
                         {
                             if path.file_name().is_some_and(|name| name == bxt_file_name) {
-                                config.bxt = path.display().to_string();
+                                current_profile.bxt = path.display().to_string();
+                                should_save_file = true;
                             }
                         }
                     }
-                    ui.checkbox(&mut config.enable_bxt, "")
-                        .on_hover_text("Toggle BunnymodXT");
+                    if ui
+                        .checkbox(&mut current_profile.enable_bxt, "")
+                        .on_hover_text("Toggle BunnymodXT")
+                        .changed()
+                    {
+                        should_save_file = true;
+                    }
+
                     ui.end_row();
 
                     ui.label("bxt-rs");
-                    ui.add(
-                        egui::TextEdit::singleline(&mut config.bxt_rs)
-                            .hint_text(format!("Drag-and-drop {}", bxt_rs_file_name)),
-                    );
+                    if ui
+                        .add(
+                            egui::TextEdit::singleline(&mut current_profile.bxt_rs)
+                                .hint_text(format!("Drag-and-drop {}", bxt_rs_file_name)),
+                        )
+                        .lost_focus()
+                    {
+                        should_save_file = true;
+                    }
+
                     if ui.button("+").clicked() {
                         if let Some(path) = rfd::FileDialog::new()
                             .set_file_name(bxt_rs_file_name)
@@ -183,70 +211,100 @@ impl eframe::App for BxtLauncher {
                                 .file_name()
                                 .is_some_and(|name| name == bxt_rs_file_name)
                             {
-                                config.bxt_rs = path.display().to_string();
+                                current_profile.bxt_rs = path.display().to_string();
+                                should_save_file = true;
                             }
                         }
                     }
-                    ui.checkbox(&mut config.enable_bxt_rs, "")
-                        .on_hover_text("Toggle bxt-rs");
+
+                    if ui
+                        .checkbox(&mut current_profile.enable_bxt_rs, "")
+                        .on_hover_text("Toggle bxt-rs")
+                        .changed()
+                    {
+                        should_save_file = true;
+                    }
                     ui.end_row();
 
                     ui.label("Gamemod");
 
-                    ui.add(egui::TextEdit::singleline(&mut config.gamemod).hint_text("valve"));
+                    if ui
+                        .add(
+                            egui::TextEdit::singleline(&mut current_profile.gamemod)
+                                .hint_text("valve"),
+                        )
+                        .lost_focus()
+                    {
+                        should_save_file = true;
+                    }
+
                     ui.end_row();
 
                     ui.label("Extra options");
-                    ui.add(
-                        egui::TextEdit::singleline(&mut config.extras)
-                            .hint_text("More launch options"),
-                    );
+                    if ui
+                        .add(
+                            egui::TextEdit::singleline(&mut current_profile.extras)
+                                .hint_text("More launch options"),
+                        )
+                        .lost_focus()
+                    {
+                        should_save_file = true
+                    };
+
                     ui.end_row();
                 });
 
             ui.separator();
 
-            // drop config
-            let _ = config;
+            // drop current_profile
+            let _ = current_profile;
 
             // generational
             ui.horizontal(|ui| {
+                // let current_profile = configs.current_profile;
+
                 for x in 0..profle_count {
                     if ui
-                        .selectable_label(
-                            configs.current_profile == x,
-                            format!("Profile {}", x + 1),
-                        )
+                        .selectable_label(current_profile_index == x, format!("Profile {}", x + 1))
                         .clicked()
                     {
                         configs.current_profile = x;
-
-                        // just save any time i can
-                        if let Err(err) = configs.write_to_default() {
-                            self.status = err.to_string();
-                        }
+                        should_save_file = true;
                     }
                 }
             });
 
-            // pick config up again
-            let current_profile = configs.current_profile;
-            let config = &mut configs.configs[current_profile];
-
             ui.separator();
 
+            let mut should_run = false;
             ui.horizontal(|ui| {
                 if ui.button("Run").clicked() {
-                    match run_bxt(&config) {
-                        Ok(_) => self.status = "OK".into(),
-                        Err(err) => self.status = err.to_string(),
-                    };
+                    // save file first and then run
+                    should_save_file = true;
+                    should_run = true;
                 }
 
                 // status text
                 let mut text = self.status.as_str();
                 ui.text_edit_singleline(&mut text);
             });
+
+            if should_save_file {
+                if let Err(err) = configs.write_to_default() {
+                    self.status = err.to_string();
+                }
+            }
+
+            if should_run {
+                // pick config up again
+                let current_profile_index = configs.current_profile;
+                let current_profile = &mut configs.configs[current_profile_index];
+
+                match run_bxt(&current_profile) {
+                    Ok(_) => self.status = "OK".into(),
+                    Err(err) => self.status = err.to_string(),
+                };
+            }
 
             let ctx = ui.ctx();
             preview_file_being_dropped(ctx);
@@ -255,26 +313,30 @@ impl eframe::App for BxtLauncher {
             ctx.input(|i| {
                 if i.raw.dropped_files.len() == 1 {
                     let item = i.raw.dropped_files[0].clone();
+
+                    // borrow again
+                    let current_profile = &mut configs.configs[current_profile_index];
+
                     if let Some(item) = item.path {
                         if item
                             .file_name()
                             .is_some_and(|filename| filename == hl_exe_file_name)
                         {
-                            config.hlexe = item.to_str().unwrap().to_string();
+                            current_profile.hlexe = item.to_str().unwrap().to_string();
                         }
 
                         if item
                             .file_name()
                             .is_some_and(|filename| filename == bxt_file_name)
                         {
-                            config.bxt = item.to_str().unwrap().to_string();
+                            current_profile.bxt = item.to_str().unwrap().to_string();
                         }
 
                         if item
                             .file_name()
                             .is_some_and(|filename| filename == bxt_rs_file_name)
                         {
-                            config.bxt_rs = item.to_str().unwrap().to_string();
+                            current_profile.bxt_rs = item.to_str().unwrap().to_string();
                         }
                     }
                 }
