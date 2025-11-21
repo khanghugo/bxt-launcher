@@ -26,6 +26,27 @@ pub fn preview_files_being_dropped_min_max_file(ctx: &egui::Context, min: usize,
 
 #[cfg(not(windows))]
 pub fn run_bxt(config: &Config) -> Result<(), LauncherError> {
+    use std::process::Command;
+
+    let Config {
+        hlexe,
+        bxt,
+        bxt_rs,
+        gamemod,
+        extras,
+        enable_bxt,
+        enable_bxt_rs,
+        use_wine,
+    } = config.clone();
+
+    if hlexe.is_empty() {
+        return Err(LauncherError::NoHLExe);
+    }
+
+    // if use_wine {
+    //     Command::new(hlexe).arg(arg)
+    // }
+
     Ok(())
 }
 
@@ -57,6 +78,7 @@ pub fn run_bxt(config: &Config) -> Result<(), LauncherError> {
         extras,
         enable_bxt,
         enable_bxt_rs,
+        use_wine: _,
     } = config.clone();
 
     if hlexe.is_empty() {
