@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-2022]
-        rust: [beta]
+        rust: [nightly]
         configuration: [release]
 
         include:
