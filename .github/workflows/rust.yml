@@ -67,7 +67,6 @@ jobs:
       
     - name: Preparing upload
       run: |
-        rm -rf bxt-launcher-package || true
         mkdir bxt-launcher-package
         cp target/${{ matrix.target }}/${{ matrix.configuration }}/${{ matrix.filename-compiled }} bxt-launcher-package/${{ matrix.filename }}
         
