@@ -24,12 +24,12 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            filename: bxt-launcher.exe
+            filename: bxt-launcher
             label: Linux-x64
 
           - os: windows-2022
             target: i686-pc-windows-msvc
-            filename: bxt-launcher
+            filename: bxt-launcher.exe
             label: Windows-x86
             
           - native-package: bxt-launcher
