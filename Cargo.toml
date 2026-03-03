@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 eframe = { version = "0.33.3", default-features = false, features = ["x11", "wayland", "glow", "default_fonts"] }
 egui = { version = "0.33.3", default-features = false }
+egui_extras = { version = "0.33.3", default-features = false, features = ["svg"] }
 env_logger = "0.11.8"
 rfd = "0.15.4"
 serde = "1.0.228"

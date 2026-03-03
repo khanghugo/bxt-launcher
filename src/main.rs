@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use eframe::egui;
-use egui::mutex::Mutex;
+use egui::{include_image, mutex::Mutex};
 
 use crate::{config::ConfigWithProfiles, utils::preview_file_being_dropped};
 
@@ -38,9 +38,9 @@ fn main() -> eframe::Result {
     let res = eframe::run_native(
         "bxt-launcher",
         options,
-        Box::new(|_cc| {
+        Box::new(|cc| {
             // This gives us image support:
-            // egui_extras::install_image_loaders(&cc.egui_ctx);
+            egui_extras::install_image_loaders(&cc.egui_ctx);
 
             Ok(Box::new(BxtLauncher::new(config.clone())))
         }),
@@ -77,7 +77,7 @@ const BXT_RS_FILE_NAME_LINUX: &str = "libbxt_rs.so";
 const HL_EXE_FILE_NAME_WINDOWS: &str = "hl.exe";
 const HL_EXE_FILE_NAME_LINUX: &str = "hl_linux";
 
-const ZOOM_FACTOR: f32 = 1.25;
+const ZOOM_FACTOR: f32 = 1.50;
 const SAVE_PERIOD: f32 = 30.;
 
 impl eframe::App for BxtLauncher {
@@ -107,7 +107,7 @@ impl eframe::App for BxtLauncher {
             let current_profile = &mut configs.configs[current_profile_index];
 
             #[cfg(not(windows))]
-            let use_windows_files = current_profile.use_wine && false;
+            let use_windows_files = current_profile.use_wine;
 
             #[cfg(windows)]
             let use_windows_files = true;
@@ -160,12 +160,28 @@ impl eframe::App for BxtLauncher {
                         }
                     }
 
-                    // unused
-                    // #[cfg(not(windows))]
-                    // {
-                    //     ui.checkbox(&mut config.use_wine, "")
-                    //         .on_hover_text("Toggle running with Wine");
-                    // }
+                    #[cfg(not(windows))]
+                    {
+                        use egui::{Color32, include_image};
+
+                        let image = if use_windows_files {
+                            include_image!("../res/windows-brands-solid-full.svg")
+                        } else {
+                            include_image!("../res/linux-brands-solid-full.svg")
+                        };
+                        let image = egui::Image::new(image)
+                            .maintain_aspect_ratio(true)
+                            .shrink_to_fit();
+
+                        let image_button = egui::Button::image(image)
+                            .frame(false)
+                            .corner_radius(0)
+                            .small();
+
+                        if ui.add(image_button).clicked() {
+                            current_profile.use_wine = !current_profile.use_wine;
+                        }
+                    }
                     ui.end_row();
 
                     ui.label("BunnymodXT");
