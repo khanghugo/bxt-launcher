@@ -20,6 +20,7 @@ pub struct Config {
     pub gamemod: String,
     pub extras: String,
     // unused features
+    #[cfg(not(windows))]
     pub use_wine: bool,
 }
 
@@ -39,9 +40,72 @@ impl Default for Config {
             bxt_rs: String::new(),
             gamemod: "valve".to_owned(),
             extras: String::new(),
-            enable_bxt: true,
-            enable_bxt_rs: true,
+            enable_bxt: false,
+            enable_bxt_rs: false,
+            #[cfg(not(windows))]
             use_wine: false,
+        }
+    }
+}
+
+impl Config {
+    pub fn validate(&self) -> Result<(), LauncherError> {
+        let Self {
+            hlexe,
+            bxt,
+            enable_bxt,
+            bxt_rs,
+            enable_bxt_rs,
+            ..
+        } = self;
+
+        if hlexe.is_empty() {
+            return Err(LauncherError::NoHLExe);
+        }
+
+        if *enable_bxt_rs {
+            let path = Path::new(bxt_rs.as_str());
+
+            if !path.exists() || !path.is_file() {
+                return Err(LauncherError::FileDoesNotExist { path: path.into() });
+            }
+        }
+
+        // BunnymodXT
+        if *enable_bxt {
+            let path = Path::new(bxt.as_str());
+
+            if !path.exists() || !path.is_file() {
+                return Err(LauncherError::FileDoesNotExist { path: path.into() });
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn trim(&self) -> Self {
+        let Self {
+            hlexe,
+            bxt,
+            enable_bxt,
+            bxt_rs,
+            enable_bxt_rs,
+            gamemod,
+            extras,
+            #[cfg(not(windows))]
+            use_wine,
+        } = self;
+
+        Self {
+            hlexe: hlexe.trim().to_owned(),
+            bxt: bxt.trim().to_owned(),
+            enable_bxt: *enable_bxt,
+            bxt_rs: bxt_rs.trim().to_owned(),
+            enable_bxt_rs: *enable_bxt_rs,
+            gamemod: gamemod.trim().to_owned(),
+            extras: extras.trim().to_owned(),
+            #[cfg(not(windows))]
+            use_wine: *use_wine,
         }
     }
 }

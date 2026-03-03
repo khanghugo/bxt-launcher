@@ -30,6 +30,12 @@ pub enum LauncherError {
     TomlWritingError { source: toml::ser::Error },
     #[error("File does not exist: {path}")]
     FileDoesNotExist { path: PathBuf },
+    #[cfg(not(windows))]
+    #[error("Cannot find Steam path")]
+    CannotFindSteam,
+    #[cfg(not(windows))]
+    #[error("No wine installed")]
+    NoWine,
 }
 
 #[cfg(windows)]

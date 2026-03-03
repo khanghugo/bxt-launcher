@@ -5,14 +5,21 @@ use std::sync::Arc;
 use eframe::egui;
 use egui::mutex::Mutex;
 
-use crate::{
-    config::ConfigWithProfiles,
-    utils::{preview_file_being_dropped, run_bxt},
-};
+use crate::{config::ConfigWithProfiles, utils::preview_file_being_dropped};
 
 mod config;
 mod error;
 mod utils;
+
+#[cfg(not(windows))]
+mod linux;
+#[cfg(not(windows))]
+use crate::linux::run_bxt;
+
+#[cfg(windows)]
+mod windows;
+#[cfg(windows)]
+use crate::windows::run_bxt;
 
 fn main() -> eframe::Result {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
@@ -163,7 +170,8 @@ impl eframe::App for BxtLauncher {
 
                     ui.label("BunnymodXT");
                     if ui
-                        .add(
+                        .add_enabled(
+                            current_profile.enable_bxt,
                             egui::TextEdit::singleline(&mut current_profile.bxt)
                                 .hint_text(format!("Drag-and-drop {}", bxt_file_name)),
                         )
@@ -195,7 +203,8 @@ impl eframe::App for BxtLauncher {
 
                     ui.label("bxt-rs");
                     if ui
-                        .add(
+                        .add_enabled(
+                            current_profile.enable_bxt_rs,
                             egui::TextEdit::singleline(&mut current_profile.bxt_rs)
                                 .hint_text(format!("Drag-and-drop {}", bxt_rs_file_name)),
                         )
@@ -259,6 +268,7 @@ impl eframe::App for BxtLauncher {
             ui.separator();
 
             // drop current_profile
+            // let _ = current_profile;
             let _ = current_profile;
 
             // generational
@@ -308,7 +318,6 @@ impl eframe::App for BxtLauncher {
                 };
             }
 
-            let ctx = ui.ctx();
             preview_file_being_dropped(ctx);
 
             // Collect dropped files:
