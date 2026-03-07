@@ -50,12 +50,12 @@ pub fn run_bxt(config: &Config) -> Result<(), LauncherError> {
 
     let mut preload = env::var("LD_PRELOAD").unwrap_or("".to_owned());
 
-    if enable_bxt {
-        preload = format!("{}:{}", preload, bxt);
-    }
-
     if enable_bxt_rs {
         preload = format!("{}:{}", preload, bxt_rs);
+    }
+
+    if enable_bxt {
+        preload = format!("{}:{}", preload, bxt);
     }
 
     cmd.env("LD_PRELOAD", preload);
