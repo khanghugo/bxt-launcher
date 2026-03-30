@@ -162,7 +162,7 @@ impl eframe::App for BxtLauncher {
 
                     #[cfg(not(windows))]
                     {
-                        use egui::{Color32, include_image};
+                        use egui::include_image;
 
                         let image = if use_windows_files {
                             include_image!("../res/windows-brands-solid-full.svg")
@@ -203,6 +203,7 @@ impl eframe::App for BxtLauncher {
                         {
                             if path.file_name().is_some_and(|name| name == bxt_file_name) {
                                 current_profile.bxt = path.display().to_string();
+                                current_profile.enable_bxt = true;
                                 should_save_file = true;
                             }
                         }
@@ -239,6 +240,7 @@ impl eframe::App for BxtLauncher {
                                 .is_some_and(|name| name == bxt_rs_file_name)
                             {
                                 current_profile.bxt_rs = path.display().to_string();
+                                current_profile.enable_bxt_rs = true;
                                 should_save_file = true;
                             }
                         }
@@ -357,6 +359,7 @@ impl eframe::App for BxtLauncher {
                             .is_some_and(|filename| filename == bxt_file_name)
                         {
                             current_profile.bxt = item.to_str().unwrap().to_string();
+                            current_profile.enable_bxt = true;
                         }
 
                         if item
@@ -364,6 +367,7 @@ impl eframe::App for BxtLauncher {
                             .is_some_and(|filename| filename == bxt_rs_file_name)
                         {
                             current_profile.bxt_rs = item.to_str().unwrap().to_string();
+                            current_profile.enable_bxt_rs = true;
                         }
                     }
                 }
